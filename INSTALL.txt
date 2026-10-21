@@ -1,0 +1,25 @@
+BOUNTY LEDGER - INSTALL (early test build)
+
+1. Close WoW, or be ready to /reload.
+2. Unzip this file. You'll get a folder named "BountyLedger".
+3. Move the BountyLedger folder into your addons folder:
+     Beta:  World of Warcraft\_classic_beta_\Interface\AddOns\
+   (At launch, use the AddOns folder inside the Forever game folder.)
+   The final path should end in ...\Interface\AddOns\BountyLedger\BountyLedger.toc
+   If you get ...\AddOns\BountyLedger\BountyLedger\..., move the inner folder up one level.
+4. Start the game. At character select, click AddOns and make sure Bounty Ledger is checked.
+
+USING IT
+  /bounty                 open the board
+  /bounty post 5 note     post a 5 gold bounty on your current target (an enemy player)
+  /bounty test            show the BOUNTY CLAIMED banner
+  /bounty toasts | sound  turn popups or sounds on or off
+
+HOW IT WORKS
+  - Post a bounty on an enemy-faction player. Everyone on your faction running the addon sees it.
+  - Get the killing blow on a wanted player in the open world and the claim is recorded automatically.
+    Battleground and dungeon kills don't count.
+  - The poster pays the hunter by normal trade. Both addons record the trade, and the payment shows as Verified.
+  - Every player has a public record of bounties paid and unpaid.
+
+This is an early test build. Please report problems and red error popups (screenshots help) to Colton.

@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: Bounty Ledger
+## Notes: Player-run gold bounties on enemy players, with kills and payments verified by both sides.
+## Author: Colton
+## Version: 0.1.1
+## IconTexture: Interface\TargetingFrame\UI-RaidTargetingIcon_8
+## SavedVariables: BountyLedgerDB
+## AddonCompartmentFunc: BountyLedger_OnAddonCompartmentClick
+
+Core.lua
+Sha256.lua
+Serialize.lua
+Comm.lua
+Ledger.lua
+Bounties.lua
+Witness.lua
+UI.lua

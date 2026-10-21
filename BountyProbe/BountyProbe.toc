@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: BountyProbe
+## Notes: Tests which APIs a Forever bounty addon can use. Prints results and logs them to SavedVariables.
+## Author: Colton
+## Version: 0.1.0
+## SavedVariables: BountyProbeLog
+
+BountyProbe.lua
