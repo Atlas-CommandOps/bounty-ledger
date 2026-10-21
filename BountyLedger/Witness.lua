@@ -28,8 +28,9 @@ local function onPartyKill(attackerGUID, targetGUID)
 			local key = b.id .. "@" .. targetGUID
 			if not recentClaims[key] or now - recentClaims[key] > 60 then
 				recentClaims[key] = now
-				ns.Ledger.Append("CLAIM", { b = b.id, tid = targetGUID, tn = targetName, kt = now, z = zone })
-				total = total + b.reward
+				if ns.Ledger.Append("CLAIM", { b = b.id, tid = targetGUID, tn = targetName, kt = now, z = zone }) then
+					total = total + b.reward
+				end
 			end
 		end
 		if total > 0 then ns.Fire("CLAIMED", targetName, classFile, total, open) end
@@ -99,7 +100,7 @@ local function settle(partner, give, get)
 			if amount <= 0 then break end
 			local due = c.bounty.reward
 			local m = (i == #list) and amount or math.min(amount, due)
-			ns.Ledger.Append(kind, { c = c.id, m = m })
+			if not ns.Ledger.Append(kind, { c = c.id, m = m }) then break end
 			amount = amount - m
 			recorded = recorded + 1
 		end

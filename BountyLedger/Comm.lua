@@ -82,12 +82,50 @@ local function enqueue(dist, target, body)
 	end
 end
 
+-- Body format: <proto><kind>\30<payload>. 0.1.1 sent <kind>\30<payload> with no version,
+-- which reads as proto 1; its entries are compatible, so they are still accepted.
+function Comm.Body(kind, payload)
+	return ns.PROTO .. kind .. "\30" .. payload
+end
+
+function Comm.ParseBody(body)
+	local proto, kind, payload = body:match("^(%d+)(%a)\30(.*)$")
+	if proto then return tonumber(proto), kind, payload end
+	kind, payload = body:match("^(%a)\30(.*)$")
+	if kind then return 1, kind, payload end
+end
+
 function Comm.Broadcast(kind, payload)
-	enqueue("CHANNEL", nil, kind .. "\30" .. payload)
+	enqueue("CHANNEL", nil, Comm.Body(kind, payload))
 end
 
 function Comm.Whisper(name, kind, payload)
-	enqueue("WHISPER", ns.WhisperTarget(name), kind .. "\30" .. payload)
+	enqueue("WHISPER", ns.WhisperTarget(name), Comm.Body(kind, payload))
+end
+
+-- Per-sender flood guard: a modified client spamming the channel only gets so many chunks
+-- a minute and so many half-finished messages in memory before it is ignored.
+local budgets = {}
+local MAX_PARTIALS_PER_SENDER = 8
+
+local function overBudget(who)
+	local now = GetTime()
+	local b = budgets[who]
+	if not b or now - b.start > 60 then
+		b = { start = now, count = 0 }
+		budgets[who] = b
+	end
+	b.count = b.count + 1
+	if b.count == ns.MAX_CHUNKS_PER_MINUTE + 1 then ns.Debug("flood guard: ignoring", who, "for the rest of the minute") end
+	return b.count > ns.MAX_CHUNKS_PER_MINUTE
+end
+
+local function partialCount(who)
+	local n, prefix = 0, who .. "/"
+	for key in pairs(partial) do
+		if key:sub(1, #prefix) == prefix then n = n + 1 end
+	end
+	return n
 end
 
 local function pump()
@@ -135,7 +173,7 @@ end
 local function onAddonMessage(prefix, text, dist, sender)
 	if prefix ~= ns.PREFIX or ns.IsSecret(text) or ns.IsSecret(sender) then return end
 	local who = ns.Canon(sender)
-	if not who then return end
+	if not who or overBudget(who) then return end
 	local id, i, n, part = text:match("^([^:]+):(%d+):(%d+):(.*)$")
 	if not id then return end
 	i, n = tonumber(i), tonumber(n)
@@ -148,6 +186,7 @@ local function onAddonMessage(prefix, text, dist, sender)
 		local key = who .. "/" .. id
 		local p = partial[key]
 		if not p then
+			if partialCount(who) >= MAX_PARTIALS_PER_SENDER then return end
 			p = { n = n, got = 0, parts = {}, t = GetTime() }
 			partial[key] = p
 		end
@@ -160,8 +199,13 @@ local function onAddonMessage(prefix, text, dist, sender)
 		body = table.concat(p.parts)
 	end
 
-	local kind, payload = body:match("^(%a)\30(.*)$")
-	if kind then ns.Fire("COMM", kind, payload, who, dist) end
+	local proto, kind, payload = Comm.ParseBody(body)
+	if not proto then return end
+	if proto > ns.PROTO then
+		ns.Fire("NEWER_VERSION")
+		return
+	end
+	ns.Fire("COMM", kind, payload, who, dist)
 end
 
 C_ChatInfo.RegisterAddonMessagePrefix(ns.PREFIX)

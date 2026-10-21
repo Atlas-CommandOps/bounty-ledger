@@ -199,10 +199,12 @@ function Bounties.Post(spec)
 		return false, "You already have " .. ns.MAX_OPEN_PER_POSTER .. " open bounties."
 	end
 	local note = spec.note and strtrim(spec.note) or ""
-	ns.Ledger.Append("POST", {
+	if #name > ns.MAX_FIELD then return false, "That name is too long." end
+	local posted = ns.Ledger.Append("POST", {
 		tn = name, tid = spec.guid, tr = spec.race, tc = spec.class, tl = spec.level,
 		r = reward, note = note ~= "" and note:sub(1, 80) or nil,
 	})
+	if not posted then return false, "Not posted: hourly record limit reached." end
 	return true
 end
 

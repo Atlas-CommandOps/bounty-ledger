@@ -1,7 +1,7 @@
 -- Bounty Ledger: shared namespace, constants, saved variables and a tiny event bus.
 local ADDON, ns = ...
 
-ns.VERSION = "0.1.1"
+ns.VERSION = "0.1.2"
 ns.PREFIX = "BntyLdgr"
 ns.CHANNEL = "BountyLedgerFV"
 
@@ -11,6 +11,32 @@ ns.OVERDUE_AFTER = 48 * 3600     -- an unpaid claim is flagged overdue after thi
 ns.COSIGN_WINDOW = 15            -- seconds between a claim and a groupmate's matching kill
 ns.MAX_OPEN_PER_POSTER = 5
 ns.MIN_REWARD = 10000            -- 1 gold, in copper
+
+-- Wire format version. Bump when messages change shape; clients ignore anything newer than
+-- they understand and tell the player to update. Messages with no version are 0.1.1 (= 1).
+ns.PROTO = 2
+
+-- Abuse limits. Anyone can modify their copy of the addon, so every client enforces these
+-- on what it receives, not just on what it sends.
+ns.MAX_PER_AUTHOR_HOUR = 30      -- ledger entries one player may write per rolling hour
+ns.MAX_ENTRIES = 5000            -- ledger size cap; oldest closed history is dropped first
+ns.MAX_FIELD = 80                -- longest allowed text field
+ns.MAX_ENTRY_BYTES = 600         -- longest allowed encoded entry
+ns.MAX_FUTURE_SKEW = 300         -- seconds an entry may be stamped ahead of server time
+ns.MAX_CHUNKS_PER_MINUTE = 150   -- addon message chunks accepted per sender per minute
+ns.SYNC_SERVE_COOLDOWN = 300     -- answer one player's sync request at most this often
+
+-- "0.1.10" > "0.1.9"
+function ns.VersionNewer(a, b)
+	local pa, pb = {}, {}
+	for n in tostring(a):gmatch("%d+") do pa[#pa + 1] = tonumber(n) end
+	for n in tostring(b):gmatch("%d+") do pb[#pb + 1] = tonumber(n) end
+	for i = 1, math.max(#pa, #pb) do
+		local x, y = pa[i] or 0, pb[i] or 0
+		if x ~= y then return x > y end
+	end
+	return false
+end
 
 -- event bus ------------------------------------------------------------------
 

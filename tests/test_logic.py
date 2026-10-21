@@ -178,5 +178,89 @@ check("overdue shows on poster reputation", a.state.rep["Alice Horde"].overdue =
 bad = L.eval("function(ns) local ok, err = ns.Bounties.Post({name='Cheap Target', reward=50}); return ok end")(a)
 check("below-minimum reward refused", not bad)
 
+# ---- 0.1.2 hardening ---------------------------------------------------------
+
+L.execute("C_ChatInfo = { RegisterAddonMessagePrefix = function() end, SendAddonMessage = function() return 0 end }")
+L.execute("function GetChannelName() return 0 end")
+cns = L.table()
+for f in ["Core.lua", "Comm.lua"]:
+    load(cns, f)
+parse = L.eval("function(ns, body) return ns.Comm.ParseBody(body) end")
+check("new body carries protocol 2", L.eval("function(ns) return ns.Comm.Body('E', 'x') end")(cns) == "2E\x1ex")
+p_, k_, _ = parse(cns, "2E\x1epayload")
+check("proto-2 body parses", p_ == 2 and k_ == "E")
+p_, k_, _ = parse(cns, "E\x1epayload")
+check("0.1.1 body (no version) parses as proto 1", p_ == 1 and k_ == "E")
+check("garbage body is rejected", parse(cns, "!!!") is None)
+check("version compare 0.1.10 > 0.1.9", a.VersionNewer("0.1.10", "0.1.9") and not a.VersionNewer("0.1.2", "0.1.2"))
+
+# Receiving side: a modified client floods 31 entries in an hour; the 31st is refused.
+v = new_client("Vera Victim")
+flood = L.eval("""function(ns)
+  local results = {}
+  local prev = '-'
+  for n = 1, 31 do
+    local e = {k='POST', a='Spam Bot', n=n, t=GetServerTime(), p=prev, tn='Target ' .. n, r=20000}
+    e.h = ns.Ledger.Hash(e)
+    prev = e.h
+    results[n] = select(2, ns.Ledger.Receive(e, 'Spam Bot', true)) or 'ok'
+  end
+  return results[30], results[31]
+end""")
+r30, r31 = flood(v)
+check("30th entry in an hour accepted", r30 == "ok")
+check("31st entry in an hour refused (rate limit)", r31 == "rate limit")
+
+bad = L.eval("""function(ns, field, value, kind)
+  local e = {k=kind or 'POST', a='Odd One', n=1, t=GetServerTime(), p='-', tn='X Y', r=20000}
+  if field then e[field] = value end
+  e.h = ns.Ledger.Hash(e)
+  return select(2, ns.Ledger.Receive(e, 'Odd One', true))
+end""")
+check("entry stamped in the future refused", bad(v, "t", L.eval("GetServerTime() + 3600")) == "from the future")
+check("over-long field refused", bad(v, "note", "x" * 200) == "field too long")
+check("unknown entry kind refused", bad(v, None, None, "NUKE") == "unknown kind")
+
+# My own writes stop at the limit instead of producing entries everyone would reject.
+s = new_client("Sam Spammy")
+own = L.eval("""function(ns)
+  local last
+  for i = 1, 31 do last = ns.Ledger.Append('POST', {tn='T ' .. i, r=20000}) end
+  return last == nil
+end""")
+L.execute("print = function() end")
+check("31st own write in an hour is refused locally", own(s))
+
+# Size cap: old closed history goes first, open bounties and my own entries stay.
+c = new_client("Cara Cap")
+L.execute("NOW = NOW + 100000")
+compact = L.eval("""function(ns)
+  ns.MAX_ENTRIES = 50
+  ns.MAX_PER_AUTHOR_HOUR = 1000
+  for i = 1, 40 do
+    local who = 'Old Poster' .. i
+    local p = {k='POST', a=who, n=1, t=GetServerTime() - 86400 + i, p='-', tn='Gone ' .. i, r=20000}
+    p.h = ns.Ledger.Hash(p)
+    ns.Ledger.Receive(p, who, true)
+    local x = {k='CANCEL', a=who, n=2, t=GetServerTime() - 86400 + i + 1, p=p.h, b=who .. '#1'}
+    x.h = ns.Ledger.Hash(x)
+    ns.Ledger.Receive(x, who, true)
+  end
+  local open = {k='POST', a='Open Poster', n=1, t=GetServerTime() - 90000, p='-', tn='Still Wanted', r=50000}
+  open.h = ns.Ledger.Hash(open)
+  ns.Ledger.Receive(open, 'Open Poster', true)
+  ns.Ledger.Append('POST', {tn='Mine Target', r=20000})
+  ns.Bounties.Rebuild()
+  local removed = ns.Ledger.Compact()
+  local count = 0
+  for _ in pairs(ns.world.entries) do count = count + 1 end
+  return removed, count, ns.world.entries['Open Poster#1'] ~= nil, ns.world.entries['Cara Cap#1'] ~= nil
+end""")
+removed, count, open_kept, mine_kept = compact(c)
+# 82 entries went in; the rebuild's STATE_CHANGED already compacted, so the explicit call may find nothing left to do.
+check("compaction trims the ledger to 90%% of the cap (%d of 82 left)" % count, count <= 45)
+check("compaction keeps open bounties", open_kept)
+check("compaction keeps my own entries", mine_kept)
+
 print("\n%d failure(s)" % fails)
 sys.exit(1 if fails else 0)

@@ -484,6 +484,14 @@ ns.On("CLAIMED", function(targetName, classFile, total)
 	UI.Banner("BOUNTY CLAIMED", classColored(classFile, targetName) .. "  -  " .. ns.Money(total))
 end)
 
+local updateNoticeShown = false
+ns.On("NEWER_VERSION", function(version)
+	if updateNoticeShown then return end
+	updateNoticeShown = true
+	ns.Print("A newer version" .. (version and (" (" .. version .. ")") or "") ..
+		" is out. Update on CurseForge to keep seeing everyone's bounties.")
+end)
+
 ns.On("DIED", function(death)
 	ns.Print("Killed by " .. death.killer .. (death.spell and (" (" .. death.spell .. ")") or "") .. ". It's in My Deaths if you want to post a bounty.")
 	refresh()
