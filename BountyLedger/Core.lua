@@ -1,7 +1,7 @@
 -- Bounty Ledger: shared namespace, constants, saved variables and a tiny event bus.
 local ADDON, ns = ...
 
-ns.VERSION = "0.1.2"
+ns.VERSION = "0.1.3"
 ns.PREFIX = "BntyLdgr"
 ns.CHANNEL = "BountyLedgerFV"
 

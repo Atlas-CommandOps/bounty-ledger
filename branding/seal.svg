@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="262 222 180 180" width="180" height="180">
+  <defs>
+    <radialGradient id="wax" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#d23a2e"/><stop offset="0.6" stop-color="#9c1c17"/><stop offset="1" stop-color="#5e0d0b"/>
+    </radialGradient>
+  </defs>
+  <path fill="url(#wax)" d="M352 238 c18 -4 30 10 44 8 c16 -2 28 12 30 28 c2 14 16 22 14 40 c-2 16 -16 22 -18 38
+    c-2 18 -18 26 -34 28 c-14 2 -24 16 -42 14 c-16 -2 -24 -16 -40 -20 c-16 -4 -28 -14 -30 -32 c-2 -14 -14 -26 -10 -42
+    c4 -16 18 -22 22 -38 c4 -16 20 -22 36 -24 c10 -2 18 0 28 0 z"/>
+  <circle cx="352" cy="312" r="70" fill="none" stroke="#5e0d0b" stroke-width="6" opacity="0.8"/>
+  <path fill="#5a0c0a" d="M352 264 c-30 0 -50 20 -50 46 c0 16 8 28 20 34 l0 14 c0 6 4 9 9 9 l42 0 c5 0 9 -3 9 -9 l0 -14 c12 -6 20 -18 20 -34 c0 -26 -20 -46 -50 -46 z"/>
+  <g fill="#c8372c">
+    <ellipse cx="334" cy="310" rx="12" ry="13"/><ellipse cx="370" cy="310" rx="12" ry="13"/>
+    <path d="M352 324 l-8 14 l16 0 z"/>
+    <rect x="333" y="348" width="6" height="14" rx="2"/><rect x="345" y="348" width="6" height="14" rx="2"/>
+    <rect x="357" y="348" width="6" height="14" rx="2"/><rect x="369" y="348" width="6" height="14" rx="2"/>
+  </g>
+</svg>
